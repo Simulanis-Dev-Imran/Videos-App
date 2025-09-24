@@ -5,6 +5,7 @@ const path = require('path');
 const fs = require('fs');
 const authRoutes = require('./routes/auth');
 const videoRoutes = require('./routes/videos');
+
 const { ensureDatabaseInitialized, getDb, all } = require('./db');
 
 const app = express();
