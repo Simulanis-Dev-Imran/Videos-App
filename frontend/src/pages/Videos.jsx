@@ -1,4 +1,4 @@
-﻿import { useEffect, useMemo, useState } from 'react'
+﻿import { useEffect, useState } from 'react'
 import AppLayout from '../layout/AppLayout.jsx'
 import Button from '@mui/material/Button'
 import Stack from '@mui/material/Stack'
@@ -16,6 +16,12 @@ import Tooltip from '@mui/material/Tooltip'
 import Snackbar from '@mui/material/Snackbar'
 import ContentCopyIcon from '@mui/icons-material/ContentCopy'
 import CloudUploadIcon from '@mui/icons-material/CloudUpload'
+import DownloadIcon from '@mui/icons-material/Download'
+import FormControl from '@mui/material/FormControl'
+import InputLabel from '@mui/material/InputLabel'
+import Select from '@mui/material/Select'
+import MenuItem from '@mui/material/MenuItem'
+import Box from '@mui/material/Box'
 
 export default function Videos() {
   const [videos, setVideos] = useState([])
@@ -24,15 +30,9 @@ export default function Videos() {
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const [snack, setSnack] = useState('')
+  const [selectedUnit, setSelectedUnit] = useState('IBHEEM')
 
   const token = localStorage.getItem('token') || ''
-
-  const actions = useMemo(() => (
-    <Stack direction='row' spacing={1}>
-      <Button color='inherit' onClick={() => { localStorage.removeItem('token'); window.location.href = '/login' }}>Logout</Button>
-      {/* <Button variant='contained' onClick={load}>Refresh</Button> */}
-    </Stack>
-  ), [])
 
   async function load() {
     setError('')
@@ -48,6 +48,19 @@ export default function Videos() {
 
   useEffect(() => { load() }, [])
 
+  const UNITS = ['IBHEEM', 'RAM', 'CIT', 'ADU']
+
+  function belongsToUnit(name, unit) {
+    const n = (name || '').toLowerCase()
+    const u = unit.toLowerCase()
+    return n.includes(u)
+  }
+
+  const videosByUnit = UNITS.reduce((acc, unit) => {
+    acc[unit] = videos.filter(v => belongsToUnit(v.name, unit)).slice(0, 3)
+    return acc
+  }, {})
+
   async function upload(e) {
     e.preventDefault()
     if (!file) return setError('Choose a file')
@@ -56,7 +69,10 @@ export default function Videos() {
     setLoading(true)
     const form = new FormData()
     form.append('file', file)
-    form.append('filename', filename)
+    const lower = (filename || '').toLowerCase()
+    const unitLower = selectedUnit.toLowerCase()
+    const filenameWithUnit = lower.includes(unitLower) ? filename : `${unitLower}_${filename}`
+    form.append('filename', filenameWithUnit)
     try {
       const res = await fetch('http://localhost:4000/api/videos/upload', {
         method: 'POST',
@@ -103,59 +119,122 @@ export default function Videos() {
   }
 
   return (
-    <AppLayout title='Videos' actions={actions}>
-      <Paper elevation={0} sx={{ p: 2, mb: 3, border: '1px solid', borderColor: 'divider' }} component='form' onSubmit={upload}>
+    <AppLayout title="Videos">
+      <Paper elevation={0} sx={{ p: 2, mb: 3, border: '1px solid', borderColor: 'divider' }} component="form" onSubmit={upload}>
         <Stack spacing={1} direction={{ xs: 'column', sm: 'row' }} alignItems={{ sm: 'center' }}>
-          <Button variant='outlined' startIcon={<CloudUploadIcon />} component='label'>
+          <Button variant="outlined" startIcon={<CloudUploadIcon />} component="label">
             Choose video
-            <input type='file' accept='video/*' hidden onChange={e => setFile(e.target.files?.[0] || null)} />
+            <input type="file" accept="video/*" hidden onChange={e => setFile(e.target.files?.[0] || null)} />
           </Button>
-          <TextField label='Desired filename (e.g. myvideo.mp4)' value={filename} onChange={e => setFilename(e.target.value)} fullWidth />
-          <Button type='submit' variant='contained' disabled={loading}>Add new</Button>
+          <FormControl sx={{ minWidth: 140 }}>
+            <InputLabel id="unit-label">Unit</InputLabel>
+            <Select labelId="unit-label" label="Unit" value={selectedUnit} onChange={e => setSelectedUnit(e.target.value)}>
+              {UNITS.map(u => (
+                <MenuItem key={u} value={u}>{u}</MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+          <TextField label="Desired filename (e.g. myvideo.mp4)" value={filename} onChange={e => setFilename(e.target.value)} fullWidth />
+          <Button type="submit" variant="contained" disabled={loading}>Add new</Button>
         </Stack>
-        {error && <Typography color='error' sx={{ mt: 1 }}>{error}</Typography>}
-        <Typography variant='caption' sx={{ display: 'block', mt: 1 }}>File will be saved exactly as your entered filename (sanitized).</Typography>
+        {error && <Typography color="error" sx={{ mt: 1 }}>{error}</Typography>}
+        <Typography variant="caption" sx={{ display: 'block', mt: 1 }}>
+          File will be saved exactly as your entered filename (sanitized).
+        </Typography>
       </Paper>
 
-      <TableContainer component={Paper} variant='outlined'>
-        <Table size='small'>
-          <TableHead>
-            <TableRow>
-              <TableCell>Preview</TableCell>
-              <TableCell>Name</TableCell>
-              <TableCell align='right'>Size (MB)</TableCell>
-              <TableCell align='right'>Actions</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {videos.map(v => (
-              <TableRow key={v.name} hover>
-                <TableCell>
-                  <video src={`http://localhost:4000${v.url}`} controls style={{ width: 140, aspectRatio: '16/9', borderRadius: 6 }} />
-                </TableCell>
-                <TableCell>
-                  <Typography variant='subtitle2' fontWeight={600}>{v.name}</Typography>
-                </TableCell>
-                <TableCell align='right'>{(v.size / (1024*1024)).toFixed(2)}</TableCell>
-                <TableCell align='right'>
-                  <Stack direction='row' spacing={1} justifyContent='flex-end' alignItems='center'>
-                    <Tooltip title='Copy URL'>
-                      <IconButton size='small' onClick={() => copyUrl(v.url)}>
-                        <ContentCopyIcon fontSize='inherit' />
-                      </IconButton>
-                    </Tooltip>
-                    <input id={`file-${v.name}`} type='file' accept='video/*' hidden onChange={e => replaceFileFor(v.name, e.target.files?.[0] || null)} />
-                    <label htmlFor={`file-${v.name}`}>
-                      <Button variant='outlined' size='small' component='span' startIcon={<CloudUploadIcon />} disabled={loading}>Replace</Button>
-                    </label>
-                    <Button size='small' href={`http://localhost:4000${v.url}`} target='_blank'>Open</Button>
-                  </Stack>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </TableContainer>
+      {UNITS.map(unit => (
+        <Paper key={unit} elevation={0} sx={{ p: 2, mb: 3, border: '1px solid', borderColor: 'divider' }}>
+          <Typography variant="h6" sx={{ mb: 1 }}>{unit}</Typography>
+          <TableContainer>
+            <Table size="small" aria-label={`${unit} videos`}>
+              <TableHead>
+                <TableRow>
+                  {/* <TableCell>Preview</TableCell> */}
+                  <TableCell>Name</TableCell>
+                  <TableCell align="right">Size (MB)</TableCell>
+                  <TableCell align="right">Actions</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {videosByUnit[unit].length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={4} align="center">
+                      <Typography variant="body2">No video found</Typography>
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  videosByUnit[unit].map(v => (
+                    <TableRow key={`${unit}-${v.name}`} hover>
+                      {/* <TableCell>
+                        <Box
+                          sx={{
+                            width: 140,
+                            height: 80,
+                            borderRadius: 1,
+                            overflow: 'hidden',
+                            bgcolor: '#000',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                          }}
+                        >
+                          {v.url && (
+                            <video
+                              src={`http://localhost:4000${v.url}`}
+                              muted
+                              autoPlay
+                              loop
+                              playsInline
+                              preload="metadata"
+                              style={{
+                                width: '100%',
+                                height: '100%',
+                                objectFit: 'cover',
+                                // background: '#000',
+                                display: 'block',
+                              }}
+                              onError={e => { e.target.style.display = 'none'; }}
+                            />
+                          )}
+                        </Box>
+                      </TableCell> */}
+                      <TableCell>
+                        <Typography variant="subtitle2" fontWeight={600}>{v.name}</Typography>
+                      </TableCell>
+                      <TableCell align="right">{(v.size / (1024 * 1024)).toFixed(2)}</TableCell>
+                      <TableCell align="right">
+                        <Stack direction="row" spacing={1} justifyContent="flex-end" alignItems="center">
+                          {/* <Tooltip title="Copy URL">
+                            <IconButton size="small" onClick={() => copyUrl(v.url)}>
+                              <ContentCopyIcon fontSize="inherit" />
+                            </IconButton>
+                          </Tooltip> */}
+                          <input id={`file-${unit}-${v.name}`} type="file" accept="video/*" hidden onChange={e => replaceFileFor(v.name, e.target.files?.[0] || null)} />
+                          <label htmlFor={`file-${unit}-${v.name}`}>
+                            <Button variant="outlined" size="small" component="span" startIcon={<CloudUploadIcon />} disabled={loading}>Replace</Button>
+                          </label>
+                          <Tooltip title="Download">
+                            <IconButton
+                              size="small"
+                              component="a"
+                              href={`http://localhost:4000${v.url}`}
+                              download
+                              target="_blank"
+                            >
+                              <DownloadIcon fontSize="inherit" />
+                            </IconButton>
+                          </Tooltip>
+                        </Stack>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </TableContainer>
+        </Paper>
+      ))}
 
       <Snackbar open={!!snack} autoHideDuration={2000} onClose={() => setSnack('')} message={snack} />
     </AppLayout>

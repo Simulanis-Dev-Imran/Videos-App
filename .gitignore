@@ -1,0 +1,40 @@
+# Node dependencies
+node_modules/
+**/node_modules/
+
+# Builds / caches
+build/
+dist/
+**/dist/
+.cache/
+.parcel-cache/
+.next/
+out/
+coverage/
+
+# Environment
+.env
+**/.env
+.env.*
+
+# OS / editors
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*
+
+# Backend artifacts
+backend/app.db
+backend/uploads/
+backend/uploads/**
+
+# Frontend artifacts
+frontend/dist/
+frontend/dist-ssr/
+frontend/uploads/

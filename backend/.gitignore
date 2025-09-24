@@ -1,0 +1,16 @@
+# Node dependencies
+node_modules/
+
+# Environment
+.env
+
+# SQLite DB
+app.db
+
+# Uploads
+uploads/
+uploads/**
+
+# Logs
+*.log
+npm-debug.log*

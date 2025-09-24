@@ -4,11 +4,16 @@ import TextField from '@mui/material/TextField'
 import Button from '@mui/material/Button'
 import Stack from '@mui/material/Stack'
 import Typography from '@mui/material/Typography'
+import IconButton from '@mui/material/IconButton'
+import InputAdornment from '@mui/material/InputAdornment'
+import Visibility from '@mui/icons-material/Visibility'
+import VisibilityOff from '@mui/icons-material/VisibilityOff'
 import AppLayout from '../layout/AppLayout.jsx'
 
 export default function Login() {
-  const [username, setUsername] = useState('admin')
-  const [password, setPassword] = useState('password')
+  const [username, setUsername] = useState('')
+  const [password, setPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
@@ -25,7 +30,7 @@ export default function Login() {
       if (!res.ok) throw new Error('Invalid credentials')
       const data = await res.json()
       localStorage.setItem('token', data.token)
-      window.location.href = '/videos'
+      window.location.href = '/dashboard'
     } catch (e) {
       setError(e.message || 'Login failed')
     } finally {
@@ -34,12 +39,31 @@ export default function Login() {
   }
 
   return (
-    <AppLayout title='Sign in'>
+    <AppLayout title='Sign in' hideSidebar>
       <Paper elevation={3} sx={{ p: 3, maxWidth: 420, mx: 'auto' }} component='form' onSubmit={submit}>
         <Stack spacing={2}>
           <Typography variant='h5'>Welcome</Typography>
           <TextField label='Username' value={username} onChange={e => setUsername(e.target.value)} fullWidth />
-          <TextField type='password' label='Password' value={password} onChange={e => setPassword(e.target.value)} fullWidth />
+          <TextField
+            type={showPassword ? 'text' : 'password'}
+            label='Password'
+            value={password}
+            onChange={e => setPassword(e.target.value)}
+            fullWidth
+            InputProps={{
+              endAdornment: (
+                <InputAdornment position='end'>
+                  <IconButton
+                    aria-label={showPassword ? 'Hide password' : 'Show password'}
+                    onClick={() => setShowPassword(s => !s)}
+                    edge='end'
+                  >
+                    {showPassword ? <VisibilityOff /> : <Visibility />}
+                  </IconButton>
+                </InputAdornment>
+              )
+            }}
+          />
           {error && <Typography color='error' variant='body2'>{error}</Typography>}
           <Button type='submit' variant='contained' disabled={loading}>{loading ? 'Signing in…' : 'Sign in'}</Button>
         </Stack>

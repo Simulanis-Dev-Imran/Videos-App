@@ -18,14 +18,21 @@ if (!fs.existsSync(UPLOAD_DIR)) {
 app.use(cors());
 app.use(express.json());
 
-// Static hosting for videos
 app.use('/videos', express.static(UPLOAD_DIR));
-
 app.use('/api/auth', authRoutes);
 app.use('/api/videos', videoRoutes);
+app.use('/get/users', async (req, res) => {
+  try {
+    const db = getDb();
+    const users = await all(db, 'SELECT * FROM users', []);
+    return res.status(200).json({ message: "Users", data: users })
+  } catch (error) {
+    return res.status(422).json({ message: error.message, data: [] })
+  }
+})
 
 ensureDatabaseInitialized().then(() => {
-  app.listen(PORT, () => console.log("Server running on : " ,PORT));
+  app.listen(PORT, () => console.log("Server running on : ", PORT));
 }).catch((err) => {
   console.error('Failed to init DB', err);
   process.exit(1);

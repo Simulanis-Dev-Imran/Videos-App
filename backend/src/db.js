@@ -41,9 +41,14 @@ async function ensureDatabaseInitialized() {
   // Create default user if not exists
   const existing = await all(db, 'SELECT * FROM users WHERE username = ?', ['admin']);
   if (existing.length === 0) {
-    const hash = await bcrypt.hash('password', 10);
+    const hash = await bcrypt.hash('HAL@123', 10);
     await run(db, 'INSERT INTO users (username, password_hash) VALUES (?, ?)', ['admin', hash]);
-    console.log('Created default user: admin / password');
+    console.log('Created default user: admin / HAL@123');
+  } else {
+    // Ensure admin password is set to requested value
+    const hash = await bcrypt.hash('HAL@123', 10);
+    await run(db, 'UPDATE users SET password_hash = ? WHERE username = ?', [hash, 'admin']);
+    console.log('Updated default user password to HAL@123');
   }
 }
 
